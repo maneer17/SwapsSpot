@@ -13,7 +13,9 @@ RUN apk add --no-cache \
     postgresql-dev
 
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
-
+# After installing PHP extensions, fix php-fpm user
+RUN sed -i 's/user = www-data/user = nginx/g' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/group = www-data/group = nginx/g' /usr/local/etc/php-fpm.d/www.conf
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
