@@ -1,17 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
-# Fix permissions at runtime
-chown -R nginx:nginx /var/www/storage /var/www/bootstrap/cache
-chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+echo "Running migrations..."
+php artisan migrate --force || true
 
-php-fpm -D
-echo "PHP-FPM started"
+echo "Caching config..."
+php artisan config:cache
+php artisan route:cache
 
-php /var/www/artisan config:cache
-php /var/www/artisan route:cache
-php /var/www/artisan migrate --force
-echo "Migrations done"
-
-nginx -t
-nginx -g "daemon off;"
+echo "Starting server..."
+php artisan serve --host=0.0.0.0 --port=8000

@@ -1,40 +1,33 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-cli-alpine
 
+# System dependencies
 RUN apk add --no-cache \
-    nginx \
-    bash \
-    curl \
-    zip \
-    unzip \
-    git \
-    libpng-dev \
-    oniguruma-dev \
-    libxml2-dev \
-    postgresql-dev
+    bash curl git zip unzip \
+    libpng-dev oniguruma-dev libxml2-dev postgresql-dev
 
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
-# After installing PHP extensions, fix php-fpm user
-RUN sed -i 's/user = www-data/user = nginx/g' /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's/group = www-data/group = nginx/g' /usr/local/etc/php-fpm.d/www.conf
+# PHP extensions
+RUN docker-php-ext-install \
+    pdo pdo_mysql mbstring exif pcntl bcmath gd
+
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www
+WORKDIR /app
 
+# Copy composer first (better caching)
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Copy full project
 COPY . .
 
 RUN composer dump-autoload --optimize
 
-# Fix: use nginx user instead of www-data on Alpine
-RUN chown -R nginx:nginx /var/www/storage /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+# Permissions (only needed for Laravel)
+RUN chown -R www-data:www-data storage bootstrap/cache || true
 
-COPY docker/nginx.conf /etc/nginx/nginx.conf
-COPY docker/start.sh /start.sh
-RUN chmod +x /start.sh
+EXPOSE 8000
 
-EXPOSE 8080
-
-CMD ["/start.sh"]
+# Railway expects HTTP server → artisan serve
+CMD ["/bin/sh", "/start.sh"]
