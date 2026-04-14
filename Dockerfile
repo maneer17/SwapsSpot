@@ -30,4 +30,4 @@ RUN chown -R www-data:www-data storage bootstrap/cache || true
 EXPOSE 8000
 
 # Railway expects HTTP server → artisan serve
-CMD ["/bin/sh", "/start.sh"]
+CMD ["/bin/sh", "docker/start.sh"]
